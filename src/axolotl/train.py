@@ -84,6 +84,18 @@ def train(
     model, peft_config = load_model(cfg, tokenizer, inference=cli_args.inference)
     model.generation_config.do_sample = True
 
+    
+    # --------- 추가 코드 layer unfreeze ----------------     
+    for name, param in model.named_parameters():
+        #if not name.startswith("model.layers"):
+         #   continue
+        if name.startswith("model.layers.6.") or name.startswith("model.layers.13.") or name.startswith("model.layers.20."):
+            continue
+       #  추가한 파라미터 외의 layer freeze
+        param.requires_grad = False
+        
+    print(model.num_parameters(only_trainable=True))
+    # ----------------------------------------------------------
     model_ref = None
     if cfg.rl and cfg.rl != "orpo":
         if cfg.adapter and not cfg.rl_adapter_ref_model:
@@ -100,16 +112,7 @@ def train(
 
     if cfg.unfrozen_parameters:
         freeze_layers_except(model, cfg.unfrozen_parameters)
-    #--------- 추가 코드 layer unfreeze ----------------     
-    for name, param in model.named_parameters():
-        #if not name.startswith("model.layers"):
-         #   continue
-        if name.startswith("model.layers.6.") or name.startswith("model.layers.13.") or name.startswith("model.layers.20."):
-            continue
-       #  추가한 파라미터 외의 layer freeze
-        param.requires_grad = False
-        
-    print(model.num_parameters(only_trainable=True))
+
     trainer = setup_trainer(
         cfg,
         train_dataset,
